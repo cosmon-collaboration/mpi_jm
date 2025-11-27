@@ -1,0 +1,101 @@
+#!/bin/bash
+
+#
+# Figure out selected MPI vendor and version
+# Check for cuda version
+# Figure out how to control affinity.   Look for gnu sched library
+# Determine platform
+# if x85 platform, then cpuid is available.
+#
+
+# Location to install
+prefix=
+
+# Figure out which mpi we are using
+mpidef=""
+mpitype=MPIUNKNOWN
+mpiver=unknown
+
+if [[ ${CRAY_MPICH_DIR}x == x ]]
+then
+	# Check for openmpi
+	if [[ $(type -P ompi_info) ]]
+	then
+		v=`ompi_info --version | head -1 | sed "s/.* //"`
+		if [[ ${v:0:2} == "v4" ]]
+		then
+			mpitype=OPENMPI4
+			mpidef="-DOPENMPI4=1"
+			mpiver="OpenMpi-$v"
+		elif [[ ${v:0:2} == "v5" ]]
+		then
+			mpitype=OPENMPI5
+			mpidef="-DOPENMPI5=1"
+			mpiver="OpenMpi-$v"
+		fi
+	fi
+else
+	echo "Found cray-mpich"
+	echo "Need to verify dpm features are enabled"
+	echo "Need to verify that GTL library can be linked for GPU support"
+	mpitype=CRAYMPICH  # Todo: Use CRAYMPICHDPM if we find DPM features enabled
+	mpidef="-DCRAYMPICH=1"
+	v=`grep version= $CRAY_MPICH_DIR/lib/pkgconfig/mpich.pc`
+	mpiver="${v:8:-1}"
+fi
+
+
+for arg in "$@"
+do
+    case "$arg" in
+	--prefix=*) 
+		prefix=${arg#*=}
+		;;
+	-h |  --help | --usage)
+		echo ""
+		echo "Usage:"
+		echo "./configure --prefix=<installdir>"
+		echo ""
+		echo "Determine MPI vendor and version"
+		echo "Determine if CUDA is available and version"
+		echo "Determine how to control affinity for openmp threads (gnu sched_* functions)"
+		echo "Determine platform: 'uname -m' output"
+		echo ""
+		echo "Configuration info is saved in config/make.conf and config/config.h"
+		echo ""
+		exit 0
+		;;
+    *)      
+		echo unknown argument $arg
+		;;
+    esac
+done
+
+if [[ ${prefix}x == x ]]
+then
+	echo "Must specify --prefix=<installdir>"
+	exit 1
+fi
+
+echo prefix=$prefix
+machine=`uname -m`
+os=`uname -o | sed -e "s+.*/++"`
+
+# Include file for Makefiles
+cm=config/make.conf
+
+# Include file for c/c++
+ch=config/config.h
+
+
+echo "# Make variables from configuration" > $cm
+echo "PREFIX:=${prefix}" >> $cm
+echo "${mpitype}:=1" >> $cm
+echo "MPIVER:=${mpiver}" >> $cm
+echo "MACHINE:=${machine}" >> $cm
+echo "OS:=${os}" >> $cm
+
+echo "// Configuration file for compilation" > $ch
+echo "#define MPITYPE_${mpitype} 1" >> $ch
+echo "#define MACHINE_${machine} 1" >> $ch
+echo "#define OS_${os} 1" >> $ch
