@@ -14,3 +14,8 @@ Mpi_Jm (MPI Job Manager) is a system for efficiently bundling related tasks for 
 # Documentation  
 
 Documentation can be found in the [wiki](https://github.com/cosmon-collaboration/mpi_jm/wiki#introduction)
+
+
+#  Integration Directory   
+
+This directory has example integrations with mpi_jm specifying the required actions.
