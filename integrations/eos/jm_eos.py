@@ -8,7 +8,7 @@ import sys
 import time
 import mpi_jm
 import jm_machine
-import jm_lat
+import jm_common
 import pathlib
 
 # jm_machine determined number of gpus per node
@@ -149,14 +149,14 @@ def est_runtime(j, diag, epsabs):
 def startcmd(j):
     print("Startcmd: ", j.name, flush=True)
     et = time.time() + j.estTime
-    if et > jm_lat.jm_end_time:
+    if et > jm_common.jm_end_time:
         print("time=", time.time(), ", estTime=", j.estTime, ", et=", et)
-        print("jm_end_time=", jm_lat.jm_end_time, flush=True)
+        print("jm_end_time=", jm_common.jm_end_time, flush=True)
         return "Job " + j.name + " will not complete before the allocation end time, skipping ..."
     # make sure there isn't another allocation that has started the job
     print("Startcmd: trying to claim job", flush=True)
     r = None
-    # r = jm_lat.claimJob(j) # try to make <jobfile>.lock file
+    # r = jm_common.claimJob(j) # try to make <jobfile>.lock file
     print("Startcmd: job claimed, r=", r,  flush=True)
     if r is None: # no problems, we claimed the job
         # make sure output dir path is created
@@ -314,7 +314,7 @@ def init_mod(cfg):
     global executable
     print("One time init for module jm_eos - Version 2")
     val = cfg["executable"]
-    executable = jm_lat.fixRelPath(val)
+    executable = jm_common.fixRelPath(val)
     print("eos init mod: exe at ", executable)
 
 def add_job(jdict):
