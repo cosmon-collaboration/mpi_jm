@@ -1,3 +1,6 @@
+# Include configure based make vars
+include ../../config/make.conf
+
 BINDIR=../../bin
 LIBDIR=../../lib
 PYLIBDIR=../../pylib
@@ -15,14 +18,7 @@ CPPFLAGS=
 CXXFLAGS=$(INCLUDES) -Wall -g -O0 -fno-omit-frame-pointer
 # CXXFLAGS=$(INCLUDES) -Wall -g -O3 -Wall
 
-LDFLAGS:=
-ifdef MPI_DIR
-ifneq ($(wildcard $(MPI_DIR)/lib.),)
-LDFLAGS+=-L$(MPI_DIR)/lib
-else
-LDFLAGS+=-L$(MPI_DIR)/lib64
-endif
-endif
+LDFLAGS:=-L${MPI_LIB_DIR}
 
 # SRCS=jm_py.cc jm_sched.cc jm_res.cc
 SRCS=jm_py.cc jm_sched.cc jm_res.cc jm_lump.cc jm_log.cc jm_mkdirp.c

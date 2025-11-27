@@ -1,17 +1,17 @@
+# Bring in config variables
+include ../../config/make.conf
+
 # These are staging areas before installing
 BINDIR=../../bin
 LIBDIR=../../lib
 INCDIR=../../include
 
 DEFLIST=
-HOST=$(shell expr "$(HOSTNAME)" : "\([^ -]*\)")
-OS:=$(shell uname -s)
-M:=$(shell uname -m)
 # Figure out what the jm_worker shared library is called
 ifeq ($(OS),Darwin)
 	JMLIB=libjm_worker.dylib
 	JMOMPLIB=libjm_workeromp.dylib
-	ifeq ($(M),arm64)
+	ifeq ($(MACHINE),arm64)
 		CPUID:=
 	else
 		CPUID:=-DUSE_CPUID=1
@@ -25,24 +25,13 @@ endif
 JMLIBS=libjm_worker.a
 JMOMPLIBS=libjm_workeromp.a
 
-CXX=mpic++ -std=c++14 -DMVAPICH2=1
+CXX=mpic++ -std=c++14
 CC=mpicc -std=c99
 
 INCLUDES=-I../shared
 CXXFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer $(CPUID)
 CFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer $(CPUID)
-ifdef DISCONNECT_CHILD
-	CXXFLAGS+=-DJM_DISCONNECT_CHILD
-	CFLAGS+=-DJM_DISCONNECT_CHILD
-endif
-LDFLAGS:=
-ifdef MPI_DIR
-ifneq ($(wildcard $(MPI_DIR)/lib.),)
-LDFLAGS+=-L$(MPI_DIR)/lib
-else
-LDFLAGS+=-L$(MPI_DIR)/lib64
-endif
-endif
+LDFLAGS:=-L$(MPI_LIB_DIR)
 
 all: $(BINDIR)  $(LIBDIR)  $(INCDIR)/jm.h
 	make -e $(LIBDIR)/$(JMLIB) $(LIBDIR)/$(JMOMPLIB) $(LIBDIR)/$(JMLIBS) $(LIBDIR)/$(JMOMPLIBS)

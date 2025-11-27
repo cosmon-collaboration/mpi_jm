@@ -15,6 +15,10 @@ prefix=
 mpidef=""
 mpitype=MPIUNKNOWN
 mpiver=unknown
+mpidir=
+
+mpicc="mpicc -std=c99"
+mpicxx="mpic++ -std=c++14"
 
 if [[ ${CRAY_MPICH_DIR}x == x ]]
 then
@@ -32,19 +36,30 @@ then
 			mpitype=OPENMPI5
 			mpidef="-DOPENMPI5=1"
 			mpiver="OpenMpi-$v"
+		else
+			echo "Unknown OpenMPI version"
+			exit 1
 		fi
+		mpidir=`which ompi_info`
+		mpidir=`dirname $mpidir`
+		mpidir=`dirname $mpidir`
 	fi
 else
 	echo "Found cray-mpich"
 	echo "Need to verify dpm features are enabled"
 	echo "Need to verify that GTL library can be linked for GPU support"
+	mpidir=${CRAY_MPICH_DIR}
 	mpitype=CRAYMPICH  # Todo: Use CRAYMPICHDPM if we find DPM features enabled
 	mpidef="-DCRAYMPICH=1"
 	v=`grep version= $CRAY_MPICH_DIR/lib/pkgconfig/mpich.pc`
 	mpiver="${v:8:-1}"
+	# cray uses funny names for their wrappers
+	mpicc="cc -std=c99"
+	mpicxx="CC -std=c++14"
 fi
 
 
+# process command line arguments
 for arg in "$@"
 do
     case "$arg" in
@@ -81,6 +96,13 @@ echo prefix=$prefix
 machine=`uname -m`
 os=`uname -o | sed -e "s+.*/++"`
 
+if [ -d $MPI_DIR/lib64 ]
+then
+	mpilibdir="$mpidir/lib64"
+else
+	mpilibdir="$mpidir/lib"
+fi
+
 # Include file for Makefiles
 cm=config/make.conf
 
@@ -89,11 +111,15 @@ ch=config/config.h
 
 
 echo "# Make variables from configuration" > $cm
-echo "PREFIX:=${prefix}" >> $cm
+echo "PREFIX:=\"${prefix}\"" >> $cm
 echo "${mpitype}:=1" >> $cm
 echo "MPIVER:=${mpiver}" >> $cm
 echo "MACHINE:=${machine}" >> $cm
 echo "OS:=${os}" >> $cm
+echo "MPICC=\"${mpicc}\"" >> $cm
+echo "MPICXX=\"${mpicxx}\"" >> $cm
+echo "MPI_DIR=\"${mpidir}\"" >> $cm
+echo "MPI_LIB_DIR=\"${mpilibdir}\"" >> $cm
 
 echo "// Configuration file for compilation" > $ch
 echo "#define MPITYPE_${mpitype} 1" >> $ch

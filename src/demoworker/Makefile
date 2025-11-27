@@ -1,3 +1,6 @@
+# Bring in configure based make vars
+include ../../config/make.conf
+
 BINDIR=../../bin
 LIBDIR=../../lib
 INCDIR=../../include
@@ -15,23 +18,16 @@ endif
 JMLIBS=libjm_worker.a
 JMOMPLIBS=libjm_workeromp.a
 
-CXX=mpic++ -std=c++14 -DMVAPICH2=1
+CXX=mpic++ -std=c++14
 CC=mpicc -std=c99
 
 INCLUDES=-I../shared
 CXXFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
 CFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
-LDFLAGS:=
-ifdef MPI_DIR
-ifneq ($(wildcard $(MPI_DIR)/lib.),)
-LDFLAGS+=-L$(MPI_DIR)/lib
-else
-LDFLAGS+=-L$(MPI_DIR)/lib64
-endif
-endif
+LDFLAGS:=-L$(MPI_LIB_DIR)
 
 all: $(BINDIR)
-	make $(BINDIR)/worker
+	make $(BINDIR)/demoworker
 
 $(BINDIR):
 	mkdir -p $(BINDIR)
@@ -40,7 +36,7 @@ $(LIBDIR):
 	mkdir -p $(LIBDIR)
 	chmod ug+rw $(LIBDIR)
 
-$(BINDIR)/worker: demoworker.cc ../shared/jm.h $(LIBDIR)/$(JMLIB)
+$(BINDIR)/demoworker: demoworker.cc ../shared/jm.h $(LIBDIR)/$(JMLIB)
 ifeq ($(OS),Darwin)
 	# In Mac OS/X the relative path notion gets embedded in the shared library when it is built.
 	# use otool -L to inspect libs and executables

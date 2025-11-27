@@ -56,6 +56,12 @@
 /* suffix to apply to logfile stem */
 #define JM_STARTED_SUF ".started"
 
+// Common control for applicaiton spawn child disconnect which must
+// happen in both master and the client library in a matching way.
+// Only turn off for debugging mpi issues.  Otherwise, if the child
+// crashes, the error will propagate.
+#define JM_DISCONNECT_CHILD 1
+
 #define streq(a, b) !strcmp(a, b)
 #define strcaseeq(a, b) !strcasecmp(a, b)
 
