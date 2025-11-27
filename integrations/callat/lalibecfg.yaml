@@ -1,0 +1,50 @@
+---
+# Example configuration for complex user software with lots of pieces.
+# Environment set here will be delivered to app launches
+recursive: True # look in subdirs too
+setenv: # not dict - processed in order to create dict for {var} sub (like f-string f"abc{var}")
+    - "CUDA_HOME={CUDA_HOME}"  # as side effect, propagates to spawns
+    - "NVHPC_CUDA_HOME={CUDA_HOME}"
+    - "PATH={PATH}"
+    - "SWT=/usr/workspace/coldqcd/software/lassen_mvapich2-3.7_rpm/test"  # Test dir for input/output files
+    - "LQCD_STACK=lassen_mvapich2-3.7_rpm"
+    - "LQCD_TOPDIR=/usr/workspace/coldqcd/software"
+    - "LQCD_INSTALLDIR={LQCD_TOPDIR}/{LQCD_STACK}/install"
+    - "MPIDIR={LQCD_INSTALLDIR}/mvapich2gdr-2.3.7"
+    - "MPI_JM={LQCD_INSTALLDIR}/mpi_jm"
+    - "LQCD_BUILDDIR={LQCD_TOPDIR}/{LQCD_STACK}/build"
+    - "LQCD_SRCDIR={LQCD_TOPDIR}/src"
+    - "LQCD_H5_VERSION=1.10.4"
+    - "LQCD_H5_INSTALL=hdf5-{LQCD_H5_VERSION}"
+    - "LQCD_H5_DIR={LQCD_INSTALLDIR}/{LQCD_H5_INSTALL}"
+    - "LQCD_QUDA_SRC=quda_mdwf"
+    - "LD_LIBRARY_PATH=/usr/tce/packages/gcc/gcc-8.3.1/lib:{LD_LIBRARY_PATH}:{LQCD_INSTALLDIR}/{LQCD_QUDA_SRC}/lib:{LQCD_H5_DIR}/lib"
+    - "LQCD_X_SCRIPTS=/usr/workspace/coldqcd/c51/x_files/project_2/production/nucleon_elastic_FF/scripts"
+    - "MV2_USE_CUDA=1"
+    - "MV2_SUPPRESS_NCCL_USAGE_WARNING=1"
+    - "MV2_HOMOGENEOUS_CLUSTER=1"
+    - "MV2_USE_ALIGNED_ALLOC=1"
+    - "MV2_ENABLE_AFFINITY=0"  # do it ourselves
+    - "MV2_USE_MCAST=1"
+    # - "MV2_USE_GDUDIRECT=1"
+    - "MV2_USE_GDR=1"
+    - "MV2_USE_GPUDIRECT_LIMIT=4194304"  # from https://github.com/lattice/quda/wiki/Multi-GPU-Support/#peer-to-peer-communication
+    - "QUDA_RESOURCE_PATH=/p/gpfs1/walkloud/c51/x_files/project_2/production/a09m220_a/quda_resource_mvapich"
+    # - "QUDA_ENABLE_P2P=1"
+    - "CUDA_CACHE_DISABLE=1"   # Not sure what this is, but found in Andre's runs
+    - "LLNL_ATSDISABLE=1"      # Might be needed ATS(I knew what ATS was ...)
+    # - "JM_DUMP_RANK_ENV=1"  # enable output from all ranks
+logfile: "{SWT}/ken/propjobs.log"
+dirs:  # look for input yaml files here
+    - "{SWT}/ken/laliberuns"
+odirs: # matching results go here
+    - "{SWT}/ken/lalibeout"
+jm_lalibe:
+    chroma_executable: "{LQCD_INSTALLDIR}/chroma_callat_gpu/bin/chroma"
+    lalibe_executable_gpu: "{LQCD_INSTALLDIR}/lalibe_production_gpu/bin/lalibe"
+    lalibe_executable_cpu: "{LQCD_INSTALLDIR}/lalibe_production_cpu/bin/lalibe"
+    fixedargs: "-geom 1 1 2 8"
+    # for postprocessing
+    scriptpython: "{LQCD_TOPDIR}/python_venv-3.7.2.lassen/bin/python"
+    spec: "{LQCD_X_SCRIPTS}/METAQ_spec.py"
+    strangespec: "{LQCD_X_SCRIPTS}/METAQ_hyperspec.py"
