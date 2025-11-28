@@ -10,6 +10,7 @@
 #include <execinfo.h>
 #include <signal.h>
 
+// Include signal handler for SIGSEGV and SIGBUS
 void handler(int sig) {
 	void *array[20];
 	size_t size;
@@ -30,7 +31,7 @@ void installhandlers() {
 
 int main(int argc, char *argv[]) 
 { 
-	setlinebuf(stdout);
+	setvbuf(stdout, NULL, _IOLBF, BUFSIZ); // flush output on each line
 	printf("Entering worker\n");
 	int rc = 0;
 	int rank;
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
 
 	const char *emotion = getenv("EMOTION");
 	if(!emotion) emotion = "<none>";
-	printf("Work:%sR%d: EMOTION=%s\n", jm_jobname, rank, emotion);
+	printf("Work:%sR%d: env EMOTION=%s\n", jm_jobname, rank, emotion);
 
 	delete[] procname;
 	delete[] dirname;

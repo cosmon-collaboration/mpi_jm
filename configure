@@ -111,17 +111,26 @@ ch=config/config.h
 
 
 echo "# Make variables from configuration" > $cm
-echo "PREFIX:=\"${prefix}\"" >> $cm
+echo "PREFIX:=${prefix}" >> $cm
 echo "${mpitype}:=1" >> $cm
 echo "MPIVER:=${mpiver}" >> $cm
 echo "MACHINE:=${machine}" >> $cm
 echo "OS:=${os}" >> $cm
-echo "MPICC=\"${mpicc}\"" >> $cm
-echo "MPICXX=\"${mpicxx}\"" >> $cm
-echo "MPI_DIR=\"${mpidir}\"" >> $cm
-echo "MPI_LIB_DIR=\"${mpilibdir}\"" >> $cm
+echo "MPICC=${mpicc}" >> $cm
+echo "MPICXX=${mpicxx}" >> $cm
+echo "MPI_DIR=${mpidir}" >> $cm
+echo "MPI_LIB_DIR=${mpilibdir}" >> $cm
 
 echo "// Configuration file for compilation" > $ch
 echo "#define MPITYPE_${mpitype} 1" >> $ch
 echo "#define MACHINE_${machine} 1" >> $ch
 echo "#define OS_${os} 1" >> $ch
+if [[ ${OS} == Darwin ]]
+then
+	if [[ ${MACHINE} == "x86_64" ]]
+	then
+		echo "#define USE_CPUID 1" >> $ch
+	endif
+else
+	echo "#define USE_SCHED 1" >> $ch
+endif

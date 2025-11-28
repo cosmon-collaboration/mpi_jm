@@ -2,10 +2,13 @@
 // jm_int.h
 // Shared by jm_master and jm_sched so messages are in sync
 // 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <unistd.h>
+
+#define jm_setlinebuf(fp) setvbuf(fp, NULL, _IOLBF, BUFSIZ)
 
 #define MPI_PROC_NULLx 0
 

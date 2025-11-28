@@ -1513,7 +1513,7 @@ int main(int argc, char *argv[]
 	, const char **environ
 #endif
 ) { 
-    setlinebuf(stdout);
+    jm_setlinebuf(stdout);
 	printf("jm_master startup\n");
 	PNewInit();
 	jm_check_usage(argc, argv);

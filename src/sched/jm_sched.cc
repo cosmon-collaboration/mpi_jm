@@ -1621,7 +1621,7 @@ int main(int argc, char *argv[]
 ) { 
 	MPI_Comm parent_intercomm; // connection to parent jm_masters if run that way
 	int parent_size; // number of jm_master's in parent (number of nodes in parent)
-	setlinebuf(stdout);
+	jm_setlinebuf(stdout);
 	write_sched_env(); // for debugging.
 	printf("Sched: pid = %d\n", getpid());
 	printf("Sched: parsing arguments\n");
@@ -1668,7 +1668,7 @@ int main(int argc, char *argv[]
 		std::cout << "Sched: About to MPI_Init" << std::endl << std::flush;
 		MPI_Init(&argc, &argv); 
 		std::cout << "Sched: We initialized" << std::endl << std::flush;
-		setlinebuf(stdout); // re-set.   MPI_Init messes with files
+		jm_setlinebuf(stdout); // re-set.   MPI_Init messes with files
 		jm_mpi_init_done = true;
 		MPI_Comm_get_parent(&parent_intercomm); 
 		std::cout << "Sched: We connected to parent" << std::endl;

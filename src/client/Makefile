@@ -25,9 +25,6 @@ endif
 JMLIBS=libjm_worker.a
 JMOMPLIBS=libjm_workeromp.a
 
-CXX=mpic++ -std=c++14
-CC=mpicc -std=c99
-
 INCLUDES=-I../shared
 CXXFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer $(CPUID)
 CFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer $(CPUID)
@@ -50,9 +47,9 @@ $(LIBDIR)/$(JMLIB): jm_worker.c ../shared/jm.h
 	# -fpic for position independent code.
 	#  shared library construction different on mac os/x
 ifeq ($(OS),Darwin)
-	$(CC) $(CFLAGS) -fpic -dynamiclib -install_name "@loader_path/../lib/$(JMLIB)" -current_version 1.0 -compatibility_version 1.0 $(LDFLAGS) -o $(JMLIB) jm_worker.c
+	$(MPICC) $(CFLAGS) -fpic -dynamiclib -install_name "@loader_path/../lib/$(JMLIB)" -current_version 1.0 -compatibility_version 1.0 $(LDFLAGS) -o $(JMLIB) jm_worker.c
 else
-	$(CC) $(CFLAGS) -fpic -shared -Wl,-soname,$(JMLIB) $(LDFLAGS) -o $(JMLIB) jm_worker.c
+	$(MPICC) $(CFLAGS) -fpic -shared -Wl,-soname,$(JMLIB) $(LDFLAGS) -o $(JMLIB) jm_worker.c
 endif
 	install -m 664 $(JMLIB) $(LIBDIR)
 
@@ -60,20 +57,20 @@ $(LIBDIR)/$(JMOMPLIB): jm_worker.c ../shared/jm.h
 	# -fpic for position independent code.
 	#  shared library construction different on mac os/x
 ifeq ($(OS),Darwin)
-	$(CC) $(CFLAGS) -fopenmp -fpic -dynamiclib -install_name "@loader_path/../lib/$(JMOMPLIB)" -current_version 1.0 -compatibility_version 1.0  $(LDFLAGS) -o $(JMOMPLIB) -DUSEOMP jm_worker.c
+	$(MPICC) $(CFLAGS) -fopenmp -fpic -dynamiclib -install_name "@loader_path/../lib/$(JMOMPLIB)" -current_version 1.0 -compatibility_version 1.0  $(LDFLAGS) -o $(JMOMPLIB) -DUSEOMP jm_worker.c
 else
-	$(CC) $(CFLAGS) -fopenmp -fpic -shared -Wl,-soname,$(JMOMPLIB)  $(LDFLAGS) -o $(JMOMPLIB) -DUSEOMP jm_worker.c
+	$(MPICC) $(CFLAGS) -fopenmp -fpic -shared -Wl,-soname,$(JMOMPLIB)  $(LDFLAGS) -o $(JMOMPLIB) -DUSEOMP jm_worker.c
 endif
 	install -m 664 $(JMOMPLIB) $(LIBDIR)
 	
 $(LIBDIR)/$(JMLIBS): jm_worker.c ../shared/jm.h
-	$(CC) $(CFLAGS) -c  $(LDFLAGS) -o jm_worker.o jm_worker.c
+	$(MPICC) $(CFLAGS) -c  $(LDFLAGS) -o jm_worker.o jm_worker.c
 	ar cr $(JMLIBS) jm_worker.o
 	install -m 664 $(JMLIBS) $(LIBDIR)
 	/bin/rm jm_worker.o
 
 $(LIBDIR)/$(JMOMPLIBS): jm_worker.c ../shared/jm.h
-	$(CC) -fopenmp -DUSEOMP $(CFLAGS) -c  $(LDFLAGS) -o jm_worker.o jm_worker.c
+	$(MPICC) -fopenmp -DUSEOMP $(CFLAGS) -c  $(LDFLAGS) -o jm_worker.o jm_worker.c
 	ar cr $(JMOMPLIBS) jm_worker.o
 	install -m 664 $(JMOMPLIBS) $(LIBDIR)
 	/bin/rm jm_worker.o

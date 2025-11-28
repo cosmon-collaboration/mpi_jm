@@ -23,38 +23,37 @@
 #include <time.h>
 #include <unistd.h>
 #include "mpi.h" 
+#include "../../config/config.h"
 #include "jm_int.h"
 #include "jm.h"
+
+//
+// Note:   Apparently, it is possible to make sched_getcpu with
+// int cpu, numanode;
+// int rc = syscall(SYS_getcpu, &cpu, &numanode, NULL)
+// Todo: test on arm based Apple.
+
+#ifdef USE_SCHED
+#define _GNU_SOURCE 1
+#define __USE_GNU 1
+#include <sched.h>
+#endif
+#ifdef USEOMP
+#include "omp.h"
+#include <sys/syscall.h>
+#endif
+
 #ifdef __APPLE__
 #include <mach/thread_policy.h>
-// #define USE_CPUID
 #else
 #include <sys/syscall.h>
 int syscall(int number, ...); // why is this missing
-#define _GNU_SOURCE
-#define __USE_GNU
-#include <sched.h>
-#ifdef USEOMP
-#include "omp.h"
-#include <sys/syscall.h>
-#endif
-#endif
-#ifdef USEOMP
-#include "omp.h"
 #endif
 
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif
-
-// HACK
-#ifdef __APPLE__
-int
-#else
-void
-#endif
-setlinebuf(FILE *stream); // this should already be in stdio.h
 
 // used to enable output from ranks other than 0
 const char *jm_dump_rank_env = "JM_DUMP_RANK_ENV";
@@ -407,13 +406,13 @@ void jm_remap_stdout() {
 		} else {
 			dup2(1, 2); // send stderr to same place
 		}
+		// log should be line buffered
+		setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
 	} else {
 		// don't write output from other than rank 0
 		freopen("/dev/null", "w", stdout);
 		dup2(1, 2); // send stderr to same place
 	}
-	setlinebuf(stdout);
-	setlinebuf(stderr);
 }
 
 //
