@@ -1,0 +1,7 @@
+- Makefile controls building of client, sched, master and implements local install of jm\_spawnwrap and startjm.py
+- client builds the client library which is linked into applications to communicate back with mpi\_jm and perform node level resource binding.
+- sched  builds the scheduler jm\_sched
+- master builds the per node control process.  The master starts applications and reports status on them back to the scheduler
+- demoworker is an example application that links with the client library
+- jm\_spawnwrap is used in the launch process to do things like propagate the environment.   Some MPI varients are a bit broken on passing environment variables and they all have different APIs.
+- startjm.py is a Python startup script for mpi\_jm.

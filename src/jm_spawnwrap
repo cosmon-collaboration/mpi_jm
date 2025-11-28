@@ -1,0 +1,19 @@
+#!/bin/bash
+# This script wraps the executable so that the first arguments can set up environment variables.
+# argument triples  -env VAR VALUE   are peeled off and added the the environment.  At the end
+# the remaining arguments are exec'd
+while [[ $# -ne 0 ]]
+do
+	if [ $1 == "-env" ]  # found triple
+	then
+		eval 'export $2="$3"'  # add to env
+		shift 3  # delete the 3 args
+	else
+		break  # so we can exec the remaining args
+	fi
+done
+#echo "Checking for env FOO"
+#env | egrep "(FOO|WHAT)="
+# use exec so we overwrite the shell process with the program.   No shell left behind
+# "$@" passes remaining arguments untouched so that white space won't split up arguments like "a b"
+exec "$@"
