@@ -14,7 +14,7 @@ CC=mpicc -std=c99
 INCLUDES=-I../shared
 CXXFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
 CFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
-LDFLAGS:=-L${MPI_LIB_DIR)
+LDFLAGS:=-L$(MPI_LIB_DIR)
 
 all: $(BINDIR)
 	make -e $(BINDIR)/jm_master
