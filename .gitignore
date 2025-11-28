@@ -43,3 +43,12 @@
 # Special generated source code
 config/config.h
 config/make.conf
+
+# Dependency files are generated
+**/.depend
+
+# Installed files
+include/jm.h
+bin/demoworker  
+bin/jm_master  
+bin/jm_sched

@@ -47,7 +47,12 @@ then
 else
 	echo "Found cray-mpich"
 	echo "Need to verify dpm features are enabled"
-	echo "Need to verify that GTL library can be linked for GPU support"
+	if [[ ${CRAY_ACCEL_TARGET}x == x ]]
+	then
+		echo "Please load module cray-accel-nvidia<compute> module for GTL library"
+		echo "<compute> is the compute level of the GPU, like 80 on Perlmutter"
+		exit 1
+	fi
 	mpidir=${CRAY_MPICH_DIR}
 	mpitype=CRAYMPICH  # Todo: Use CRAYMPICHDPM if we find DPM features enabled
 	mpidef="-DCRAYMPICH=1"
@@ -130,7 +135,7 @@ then
 	if [[ ${MACHINE} == "x86_64" ]]
 	then
 		echo "#define USE_CPUID 1" >> $ch
-	endif
+	fi
 else
 	echo "#define USE_SCHED 1" >> $ch
-endif
+fi
