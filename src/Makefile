@@ -4,6 +4,8 @@ all:
 	cd master; make  all
 	cd client; make  all
 	cd demoworker; make all
+	install -m 755 jm_spawnwrap ../bin
+	install -m 666 startjm.py jm_machine.py ../pylib
 
 clean:
 	cd sched; make clean
