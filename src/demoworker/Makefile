@@ -54,4 +54,10 @@ endif
 	install -m 755 demoworker $(BINDIR)
 
 clean:
+	/bin/rm -f .depend
 	/bin/rm -f $(BINDIR)/demoworker *.o
+
+.depend depend:
+	$(MPICXX) -MM $(CPPFLAGS) $(CXXFLAGS) demoworker.cc > .depend
+
+include .depend

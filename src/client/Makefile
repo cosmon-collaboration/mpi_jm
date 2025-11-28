@@ -79,6 +79,12 @@ test:
 	echo rpath="\$$ORIGIN"
 
 clean:
+	/bin/rm -f .depend
 	/bin/rm -f $(JMLIB) $(JMOMPLIB) $(JMLIBS) $(JMOMPLIBS) *.o 
 	/bin/rm -rf *.dSYM
 	/bin/rm -f $(LIBDIR)/$(JMLIB) $(LIBDIR)/$(JMOMPLIB) $(LIBDIR)/$(JMLIBS) $(LIBDIR)/$(JMOMPLIBS)
+
+.depend depend:
+	$(MPICC) -MM $(CFLAGS) $(SRCS) jm_worker.c > .depend
+
+include .depend
