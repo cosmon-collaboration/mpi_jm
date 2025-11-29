@@ -33,6 +33,8 @@ polldelay=2  # time between checking mpirun status
 nameserverlogfile="nameserver.log"
 nameserveridfile=None # place to write connection id of ompi name server at startup
 
+mpiname = "<unknown>"
+
 preload=None
 
 useHydra=True
@@ -80,8 +82,24 @@ def preloadlibmpi():
     preload=libmpi
     print("Set LD_PRELOAD=", libmpi, flush=True)
 
+def get_openmpi_version():
+    '''
+        use ompi_info to get version of openmpi install.
+        raise an error on failure
+        Return is like '4.1.8'
+    '''
+    e = shutil.which("ompi_info")
+    if not e:
+        raise ValueError("Openmpi install does not have ompi_info")
+    else:
+        vstr = subprocess.check_output([e, "-V"], text=True)
+        if vstr[0:10]  == "Open MPI v":
+            return vstr[10:]
+        else:
+            raise ValueError("Unknown ompi_version string {vstr}")
+
 def pickmpi():
-    global mpirun, mpirun_hf, mpirun_n, mpirun_ns, ismvapich2, nameserver, nameserveridfile
+    global mpirun, mpirun_hf, mpirun_n, mpirun_ns, ismvapich2, nameserver, nameserveridfile, mpiname
     global jm_master_path
     jm_master_path = shutil.which("jm_master")
     if jm_master_path is None:
@@ -104,15 +122,12 @@ def pickmpi():
             print("Can't detect type of mpi: openmpi or mvapich2", flush=True)
             exit(1)
         ismvapich2 = False
-        # force setup to use rsh
-        # ompirsh = ["-mca", "plm", "rsh", "-mca", "plm_rsh_agent", "ssh", "-mca", "plm_rsh_no_tree_spawn", "true", "-show-progress"]
-        # ompirsh = ["-mca", "plm_rsh_agent", "ssh", "-mca", "plm_rsh_no_tree_spawn", "true", "-show-progress"]
-
+        mpiversion = get_openmpi_version()
+        mpiname = f"openmpi-{mpiversion}"
         # Some hints from:  https://www.open-mpi.org/faq/?category=large-clusters
         # --fwd-mpirun-port enables a tree based overlay network.   Good for sparse comms
         # pmux_base_async_modex picks up endpoint info only on first message instead of everywhere.  Again
         # sparse connectivity will win.
-        # ompirsh = ["--fwd-mpirun-port", "-mca", "plm_rsh_agent", "ssh", "-mca", "pmix_base_async_modex", "true", "-show-progress"]
         ompirsh = ["-mca", "plm_rsh_agent", "ssh", "-show-progress"]
         ompirsh += ["-mca", "fwd_mpirun_port", "true"] #  Incorrect usage
         ompirsh += ["-mca", "opal_set_max_sys_limits", "1"] # should it be -mca or --mca
@@ -132,8 +147,14 @@ def pickmpi():
         # launchnameserver will set mpirun_ns
         #
         nameserveridfile = "nameserver.id"
-        # nameserver = ["ompi-server", "--no-daemonize", "-r", nameserveridfile] # Still need some arguments
-        nameserver = None # in 5.0.x series ompi-server is gone.  Could use prte 
+        # TODO: make dependent on openmpi-4 vs openmpi-5
+        if mpiversion[0] == '4':
+            nameserver = ["ompi-server", "--no-daemonize", "-r", nameserveridfile] # Still need some arguments
+        else:
+            # in 5.0.x series ompi-server is gone.  Could use prte 
+            # Might also use MPI_Port_open instead of publish ...
+            # Let them get spawn working first, then I'll add it.
+            nameserver = None 
         # export OMPI_MCA_btl_openib_warn_default_gid_prefix=0
         os.environ['OMPI_MCA_btl_openib_warn_default_gid_prefix'] = "0"  # startup message disable.
         # export OMPI_MCA_orte_base_help_aggregate=0
@@ -142,6 +163,8 @@ def pickmpi():
         # export OMPI_MCA_pmix_base_async_modex=0
         # export OMPI_MCA_btl_tcp_latency=20000000
     else:
+        # Todo:  pick out version and GDR support
+        mpiname = "mvapich2-2.3.7"
         ismvapich2 = True
         if useHydra:
             # mpirun=[exepath, "-launcher", "ssh", "--bind-to", "none", "-envall"]
@@ -173,6 +196,7 @@ def pickmpi():
         # os.environ['MV2_SHOW_HCA_BINDING'] = "1"
         # os.environ['MV2_NUM_HCAS'] = "2"
         preloadlibmpi()  # load from MVAPICH2 libmpi.so first
+    print("Mpi Version: ", mpiversion)
     print("mpirun=", mpirun, flush=True)
 
 
@@ -405,7 +429,7 @@ def launchlump(i, numlumps, lumpsize, blocksize, alloctime, jm_master_v, pyargs)
             cmd += ["-blocksize", str(blocksize)]
         if alloctime > 0:
             cmd += ["-alloctime", str(alloctime)]
-    print(str(i)+": Launch", cmd, flush=True)
+    print(f"{i}: Mpi_Jm Launch", cmd, flush=True)
     logfilestr=logfilename(i)
     logfile=open(logfilestr, "w")
     x = subprocess.Popen(cmd, stdout=logfile, stderr=subprocess.STDOUT )
@@ -434,6 +458,7 @@ def launchnameserver():
     global mpirun_ns
     print("Starting nameserver: ", nameserver, flush=True)
     logfile=open(nameserverlogfile, "w")
+    print(f"Nameserver Launch: ", cmd)
     x = subprocess.Popen(nameserver, stdout=logfile, stderr=subprocess.STDOUT )
     logfile.close()
     # the nameserver should keep running until the end of the job
@@ -457,10 +482,10 @@ def launchmpiruns(hostlist, numlumps, lumpsize, blocksize, alloctime, jm_master_
         writelump(i, lump)
     # The first lump with start the scheduler
     runlist = []
-    print("Sleeping for 5 after launch of lump with scheduler", flush=True)
+    print("Sleeping for 3 after launch of lump with scheduler", flush=True)
     for i in range(numlumps):
         if i == 1:
-            time.sleep(5)
+            time.sleep(3)
         if launchdelay:
             time.sleep(launchdelay)
         runlist.append(launchlump(i, numlumps, lumpsize, blocksize, alloctime, jm_master_v, pyargs))
@@ -494,7 +519,7 @@ def check_pid(pid):
         return True
 
 def main():
-    print("Start Mpi_Jm:  startup for multiple lumps of nodes using MVAPICH2-2.3.7", flush=True)
+    print(f"Start Mpi_Jm:  startup for multiple lumps of nodes using {mpiname}", flush=True)
     s = datetime.datetime.now().isoformat()
     print("Start at time: ", s, flush=True)
     print("Servicenode: ", servicenode, flush=True)
