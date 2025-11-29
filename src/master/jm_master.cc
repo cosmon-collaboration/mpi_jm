@@ -34,6 +34,7 @@
 #include <vector>
 #include <string>
 #include "mpi.h" 
+#include "../../config/config.h"
 #include "jm_int.h"
 using std::vector;
 
@@ -806,7 +807,7 @@ void jm_launch_scheduler(int argc, char *argv[]) {
 			// jm_sched processes args
 			char *envbuf = new char[strlen(env_pythonpath) + strlen(pythonpath) + 8];
 			sprintf(envbuf, "%s=%s\n", env_pythonpath, pythonpath);
-			MPI_Info_set(infoa[0], "env-val", envbuf);
+			MPI_Info_set(infoa[0], JM_MPI_SPAWN_ENV_VAL, envbuf);
 			delete[] envbuf;
 			if(pyubase) {
 				// if set, also pass PYTHONUSERBASE
@@ -814,9 +815,8 @@ void jm_launch_scheduler(int argc, char *argv[]) {
 				sprintf(envbuf, "%s=%s\n", env_pyubase, pyubase);
 				// cray-mpich complained about '=' with "env" and said to use "env-val"
 				// openmpi in 5.0.7 matches cray-mpich
-				MPI_Info_set(infoa[0], "env-val", envbuf);
-				// Other MPI implementations use "env"
-				// MPI_Info_set(infoa[0], "env", envbuf);
+				// openmpi in 4.1.8 uses "env"
+				MPI_Info_set(infoa[0], JM_MPI_SPAWN_ENV_VAL, envbuf);
 				delete[] envbuf;
 			}
 		}
@@ -1250,7 +1250,7 @@ void jm_runjob(int *cmd, char *jobbuf) {
 			}
 			if(*envstr) { // if there is env to send, add to info
 				// jm_log(1, "MPI_Info_set env[%d]=%s\n", i, envstr);
-				MPI_Info_set(infoa[i], "env", envstr);  // MPI_Info_set does a strdup of the value
+				MPI_Info_set(infoa[i], JM_MPI_SPAWN_ENV_VAL, envstr);  // MPI_Info_set does a strdup of the value
 			}
 #endif
 			*envtail = 0; // trim environment back to global stuff, cutting off the slot env vars.
