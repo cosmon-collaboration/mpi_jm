@@ -20,6 +20,9 @@ mpidir=
 mpicc="mpicc -std=c99"
 mpicxx="mpic++ -std=c++14"
 
+spawn_envprop="env"  # for propagation of current value
+spawn_envval="env-val" # for setting value
+
 if [[ ${CRAY_MPICH_DIR}x == x ]]
 then
 	# Check for openmpi
@@ -31,6 +34,7 @@ then
 			mpitype=OPENMPI4
 			mpidef="-DOPENMPI4=1"
 			mpiver="OpenMpi-$v"
+			spawn_envval="env"  # older openmpi uses "env" for both
 		elif [[ ${v:0:2} == "v5" ]]
 		then
 			mpitype=OPENMPI5
@@ -139,3 +143,5 @@ then
 else
 	echo "#define USE_SCHED 1" >> $ch
 fi
+echo "#define JM_MPI_SPAWN_ENV_PROP \"${spawn_envprop}\""  >> $ch
+echo "#define JM_MPI_SPAWN_ENV_VAL \"${spawn_envval}\""  >> $ch
