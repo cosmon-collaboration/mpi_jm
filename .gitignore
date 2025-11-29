@@ -53,3 +53,5 @@ bin/demoworker
 src/demoworker/demoworker
 bin/jm_master  
 bin/jm_sched
+bin
+pylib
