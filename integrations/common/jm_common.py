@@ -169,7 +169,7 @@ def loadJobDir(cfg, d, od):
             if cfg['recursive']:
                 loadJobDir(cfg, f, od / f.name)
         elif f.match('*.yaml'):
-            if not fname.startswith('.'): # skip hidden files
+            if not f.name.startswith('.'): # skip hidden files
                 print(f"entry: {f.name}", flush=True)
                 addJobFile(f, od)
         else:
