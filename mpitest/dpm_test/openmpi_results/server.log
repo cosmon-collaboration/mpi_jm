@@ -1,0 +1,22 @@
+Server: pid=1979864
+Server: servicename=jm, port_name=602341377.0:2679739680
+Server: published name jm.602341377.0:2679739680
+trying accept on port_name=602341377.0:2679739680
+accepted connection
+receiving data
+receive completed, tag=1
+Server: received message from client 1 I got here first
+Disconnect from 'client 1 I got here first' done
+trying accept on port_name=602341377.0:2679739680
+accepted connection
+receiving data
+receive completed, tag=1
+Server: received message from client 2 follows
+Disconnect from 'client 2 follows' done
+trying accept on port_name=602341377.0:2679739680
+accepted connection
+receiving data
+receive completed, tag=0
+Server: Received tag=0 from 'client 3 quits', stop connecting
+Disconnect from 'client 3 quits' done
+Done collecting

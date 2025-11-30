@@ -1,0 +1,9 @@
+client B0: MPI_Init done, pid=1980000
+Using lookup on jm
+MAXBLOCKNAME=128
+link_port = 602341377.0:2679739680
+trying connection
+Connected!
+Sending client 1 I got here first, and tag=1
+Attempting disconnect from server
+Disconnected from server
