@@ -47,6 +47,12 @@ then
 		mpidir=`which ompi_info`
 		mpidir=`dirname $mpidir`
 		mpidir=`dirname $mpidir`
+	elif [[ -e ${MPI_DIR}/lib64/pkgconfig/mvapich2-gdr.pc ]]
+	then
+		mpitype=MVAPICH2-GDR
+		mpidef="-DMVAPICH2=1 -DMVAPICH2_GDR=1"
+		mpiver="mvapich2-gdr-2.3.7"
+		spawn_envval="env"  # 2.3.7 still uses "env"
 	fi
 else
 	echo "Found cray-mpich"
@@ -98,6 +104,7 @@ done
 if [[ ${prefix}x == x ]]
 then
 	echo "Must specify --prefix=<installdir>"
+	echo "   Will create <installdir>/{bin,lib,include,pylib} if missing and populate them"
 	exit 1
 fi
 
@@ -129,6 +136,21 @@ echo "MPICC=${mpicc}" >> $cm
 echo "MPICXX=${mpicxx}" >> $cm
 echo "MPI_DIR=${mpidir}" >> $cm
 echo "MPI_LIB_DIR=${mpilibdir}" >> $cm
+if [[ "${mpitype}" == "mvapich2-gdr-2.3.7" ]]
+then
+	# If we are using the GDR version, then links have to include cuda
+	if [[ -n "${CRAY_CUDATOOLKIT_POST_LINK_OPTS}" ]]
+	then
+		# when using mvapich2
+		echo "CFGLINKFLAGS=${CRAY_CUDATOOLKIT_POST_LINK_OPTS}" >> $cm
+	else
+		echo "Can't find cuda libs to link with, required for mvapich2-gdr"
+		/bin/rm $cm
+		exit 1
+	fi
+else
+	echo "CFGLINKFLAGS=" >> $cm
+fi
 
 echo "// Configuration file for compilation" > $ch
 echo "#define MPITYPE_${mpitype} 1" >> $ch
