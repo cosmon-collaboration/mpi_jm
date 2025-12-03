@@ -38,12 +38,12 @@ def setMachineParametersPerlmutter():
     # could be running on gpu machine or cpu machine
     mpi_jm.addnoderesource("cpu")
     if cores_per_node == 128:
-        print("Setting machine parameters for Perlmutter CPU node with {cores_per_node} cores")
+        print(f"Setting machine parameters for Perlmutter CPU node with {cores_per_node} cores")
         gpus_per_node = 0
         for id in range(cores_per_node):
             mpi_jm.addslot("cpu")
     elif cores_per_node == 64:
-        print("Setting machine parameters for Perlmutter GPU with {cores_per_node} cores")
+        print(f"Setting machine parameters for Perlmutter GPU with {cores_per_node} cores")
         gpus_per_node = 4
         mpi_jm.addnoderesource("gpu")
         for id in range(cores_per_node):
