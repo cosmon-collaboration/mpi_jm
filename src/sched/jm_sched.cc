@@ -1710,9 +1710,13 @@ int main(int argc, char *argv[]
 		// If started with mpirun -n <n> ... jm_master
 		// Add parent as lump
 		// Will build new comms to block rank0 members of jm_master
+
+		// Construct Lump for block 0  using the parent_intercomm to communicate.
+		// We can do this because jm_sched is spawned from block 0
 		jm_parent_lump = new Lump(parent_intercomm);
 	}
 	if(jm_collect_blocks) {
+		// We only do this with number of lumps > 1
 		// collect chunks of nodes until sent message that there aren't any more
 		JmAcceptLumps();
 	}
