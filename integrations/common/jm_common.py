@@ -99,9 +99,10 @@ def addJob(jdict):
         mod.init_mod(modcfg)
     try:
         mod.add_job(jdict)
-    except:
+    except Exception as e:
         # Todo: Add cleanup of unfinished jobs
         print(f"Failure adding job {yamlpath}")
+        print(f"Exception {e}")
         logger.exception("addJob:")
         addJobFailed(jdict, "Unknown error while adding job {yamlpath}")
 
@@ -129,9 +130,9 @@ def addJobFile(f, od):
                 j.jobfile = f # make sure we record where job came from
     except yaml.scanner.ScannerError as e:
         print(f"Yaml scanning error loading {f}, msg={e}")
-    except:
-        print(f"Unknown error loading {f}")
-        return
+    except Exception as e:
+        print(f"Unknown error loading {f}, msg={e}")
+    return
 
 def printJob(j):
     ts="     "
@@ -173,7 +174,7 @@ def loadJobDir(cfg, d, od):
                 print(f"entry: {f.name}", flush=True)
                 addJobFile(f, od)
         else:
-            print("unknown file: {f.name}", flush=True)
+            print(f"unknown file: {f.name}", flush=True)
 
 
 #
