@@ -843,6 +843,10 @@ static PyObject *jm_py_setblocksize(PyObject *self, PyObject *args) {
 	Py_RETURN_NONE;
 }
 
+static PyObject *jm_py_getblocksize(PyObject *self) {
+	return PyLong_FromLong(jm_block_size_arg);
+}
+
 static PyObject *jm_py_addslot(PyObject *self, PyObject *args) {
 	char *res;
 	if(!PyArg_ParseTuple(args, "s", &res)) return NULL;
@@ -890,6 +894,7 @@ static PyMethodDef mpi_jm_Methods[] = {
 	{"getnoderesources", (PyCFunction)jm_py_getnoderesources, METH_NOARGS, "Return resource type list"},
 	{"addslotenv", (PyCFunction)jm_py_addslotenv, METH_VARARGS, "Define env for node slot"},
 	{"setblocksize", (PyCFunction)jm_py_setblocksize, METH_VARARGS, "Sets number of nodes in block"},
+	{"getblocksize", (PyCFunction)jm_py_getblocksize, METH_NOARGS, "Gets number of nodes in a block"},
 	{"addslot", (PyCFunction)jm_py_addslot, METH_VARARGS, "Adds slot to resources"},
 	{"setnodemem", (PyCFunction)jm_py_setnodemem, METH_VARARGS, "Sets memory(Kb) for node"},
 	{"getnodemem", (PyCFunction)jm_py_getnodemem, METH_NOARGS, "Gets memory(Kb) for node"},
