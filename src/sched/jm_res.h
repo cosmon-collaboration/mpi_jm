@@ -1,3 +1,8 @@
+/*
+ BSD 3-Clause License
+ Copyright (c) 2025, The Regents of the University of California
+ See Repository LICENSE file
+ */
 //
 // Describes resources in a block.
 // nodes are assumed to be uniform.

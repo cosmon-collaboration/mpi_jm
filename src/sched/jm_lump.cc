@@ -1,3 +1,8 @@
+/*
+ BSD 3-Clause License
+ Copyright (c) 2025, The Regents of the University of California
+ See Repository LICENSE file
+ */
 //
 // jm_lump.cc
 // Groups of nodes running jm_master can connect and offer their services.
@@ -222,23 +227,22 @@ void Lump::MakeBlockLinks(MPI_Comm tmpcomm) {
 			printf("Server: MPI_Open_port failed!\n");
 		printf("Server: Open port returned link_port=%s\n", link_port);
 		block_link_str[bid] = jm_mstr(link_port);
+		// See Tag  SCHED2MASTER_LINK_PORT in jm_master.cc
 		MPI_Send(block_link_str[bid], MPI_MAX_PORT_NAME, MPI_CHAR, 0/*rank*/, 1/*tag*/, tmpcomm);
 		printf("Server: Sent to block %d rank 0\n", bid);
+		// Note:  will then be passed from rank 0 to all other heads of blocks in jm_master.cc
 	}
 
+	// now go through all the blocks and do an accept 
 	for(int bid = 0; bid < block_count; bid++){
 		strcpy(link_port, block_link_str[bid]);
-		printf("Server: send link_port %s for block %d\n", link_port, bid);
-		// send link port to rank 0 of the lump.   It will then broadcast in the lump
-		// so the desired block rank 0 can connect.
-#if 0
-		MPI_Send(link_port, MPI_MAX_PORT_NAME, MPI_CHAR, 0/*rank*/, 1/*tag*/, tmpcomm);
-#endif
 		printf("Server: beginning accept on link_port %s\n", link_port);
 		MPI_Comm_accept(link_port, MPI_INFO_NULL, 0, MPI_COMM_SELF, &block_link_comm[bid]);
 		bic_rank[bid] = 0; // other end uses MPI_COMM_SELF for now
 		printf("Accepted %s:B%d\n", lumpname, bid);
 	}
+	// See Tag  SCHED2MASTER_FinalBarrier in jm_master.cc
+	MPI_Barrier(tmpcomm);
 	printf("Server: done making block links\n");
 }
 

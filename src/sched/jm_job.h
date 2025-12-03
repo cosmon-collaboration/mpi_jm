@@ -1,4 +1,8 @@
-
+/*
+ BSD 3-Clause License
+ Copyright (c) 2025, The Regents of the University of California
+ See Repository LICENSE file
+ */
 
 // Lock around spawn at the Lump level instead of the block level
 #define LUMPSPAWNLOCK

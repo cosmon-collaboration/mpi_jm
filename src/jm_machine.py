@@ -1,4 +1,9 @@
 # vim: tabstop=4 expandtab
+
+# BSD 3-Clause License
+# Copyright (c) 2025, The Regents of the University of California
+# See Repository LICENSE file
+
 # Set up block structure and resources.
 # The total number of nodes is passed by jm_master
 # The number of blocks is numnodes/blocksize

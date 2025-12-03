@@ -1,3 +1,8 @@
+/*
+ BSD 3-Clause License
+ Copyright (c) 2025, The Regents of the University of California
+ See Repository LICENSE file
+ */
 //
 // jm_master is launched 1 per node to monitor the node.
 // The nodes are then organized into blocks (size specified in config file) that
@@ -952,70 +957,50 @@ static void jm_connect_scheduler(const char *hostname, bool done, MPI_Comm sched
 		// get them now instead of later.
 		for(int bid = 0; bid < jm_block_count; bid++) {
 			block_link_port[bid] = new char[MPI_MAX_PORT_NAME];
+			// See Tag SCHED2MASTER_LINK_PORT in jm_lump.cc
 			MPI_Recv(block_link_port[bid], MPI_MAX_PORT_NAME, MPI_CHAR,
 				MPI_ANY_SOURCE, MPI_ANY_TAG, tmpcomm, MPI_STATUS_IGNORE);
 			jm_log("Received link_port=%s for block %d\n", block_link_port[bid], bid);
 		}
 	}
 	// Have to get one bit of machine info early so we can figure out blocks.
-	jm_log("Broadcasting block_size");
+	jm_log("Broadcasting block_size\n");
 	MPI_Bcast(&jm_block_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	jm_block_id = jm_world_rank / jm_block_size;
 	jm_block_rank = jm_world_rank % jm_block_size;
 	jm_block_count = jm_world_size / jm_block_size;
-	jm_log("block_id=%d, block_rank=%d, block_count=%d", jm_block_id, jm_block_rank, jm_block_count);
-	if(rank != 0) {
-		// Now allocate space for block_link_port in all other nodes in block
-		// Overkill, but ok.
-		block_link_port = new char*[jm_block_count];
-		for(int bid = 0; bid < jm_block_count; bid++) {
-			block_link_port[bid] = new char[MPI_MAX_PORT_NAME];
+	jm_log("block_id=%d, block_rank=%d, block_count=%d\n", jm_block_id, jm_block_rank, jm_block_count);
+	char sched_link_port[MPI_MAX_PORT_NAME];
+	if(rank == 0) {
+		for(int bid = 1; bid < jm_block_count; bid++) {
+			int to_rank = bid * jm_block_size;
+			MPI_Send(block_link_port[bid], MPI_MAX_PORT_NAME, MPI_CHAR, to_rank, 1, MPI_COMM_WORLD);
 		}
-	}
-	// Send them out.
-	jm_log("Broadcast out link_port values to all jm_master ranks in block");
-	for(int bid = 0; bid < jm_block_count; bid++) {
-		MPI_Bcast(block_link_port[bid],  MPI_MAX_PORT_NAME, MPI_CHAR, 0, MPI_COMM_WORLD);
+		// copy the first block's link_port
+		strcpy(sched_link_port, block_link_port[0]);
+	} else if(!(rank % jm_block_size)) { // head rank of each block
+		int my_bid = rank / jm_block_size; // will divide evenly
+		MPI_Recv(sched_link_port, MPI_MAX_PORT_NAME, MPI_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		jm_log("Block %d, received link_port=%s\n", my_bid, sched_link_port);
+	} else {
+		// not head of block.
+		sched_link_port[0] = 0; // not used.
 	}
 
 	if(rank == 0) {
 		jm_log("Connecting blocks to scheduler\n");
 	}
-	usleep(1000);
-	// Now make private connections to first node of each block
-	for(int bid = 0; bid < jm_block_count; bid++) {
-		// get port info over tmpcomm.   In lump 0 this is the
-		// parentcomm connecting the scheduler to rank 0 of the lump
-#if 0
-		if(rank == 0) {
-			jm_log("Getting link port for  lump %s block %d from scheduler\n", lumpname, bid);
-#if 0
-			MPI_Recv(link_port, MPI_MAX_PORT_NAME, MPI_CHAR,
-				MPI_ANY_SOURCE, MPI_ANY_TAG, tmpcomm, MPI_STATUS_IGNORE);
-#else
-			MPI_Recv(link_port, MPI_MAX_PORT_NAME, MPI_CHAR,
-				0, MPI_ANY_TAG, tmpcomm, MPI_STATUS_IGNORE);
-#endif
-			jm_log("Received private port info %s\n", link_port);
-		}
-		// above action must complete before MPI_Bcast below
-		// This makes sure the log messages get out from rank 0
-		MPI_Barrier(MPI_COMM_WORLD);
-		// tell all nodes in lump. Could just send to bid*jm_block_size
-		jm_log("Sending out link_port to all members of block");
-		MPI_Bcast(link_port, MPI_MAX_PORT_NAME, MPI_CHAR, 0, MPI_COMM_WORLD);
-#endif
-		if(rank == bid * jm_block_size) {
-			// this is the jm_master to take the message
-			jm_log("Performing connect to block %d", bid);
-			rc = MPI_Comm_connect(block_link_port[bid], MPI_INFO_NULL, 0, MPI_COMM_SELF, &jm_sched_intercomm);
-			if(rc != MPI_SUCCESS) {
-				err("Master: failed to connect to jm_sched on %s\n", link_port);
-			}
-			jm_log("Private connection established to block %d\n", bid);
-		}
-		MPI_Barrier(MPI_COMM_WORLD);
+
+	if(!(rank % jm_block_size)) { // head rank of each block
+		int bid = rank / jm_block_size; // get this block id from rank
+		jm_log("Performing connect to sched in block %d\n", bid);
+		rc = MPI_Comm_connect(block_link_port[bid], MPI_INFO_NULL, 0, MPI_COMM_SELF, &jm_sched_intercomm);
+		if(rc != MPI_SUCCESS)
+			err("Master: failed to connect to jm_sched on %s\n", link_port);
 	}
+	// See Tag  SCHED2MASTER_FinalBarrier in jm_lump.cc
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(tmpcomm);
 	if(rank == 0) {
 		jm_log("Done connecting blocks to scheduler\n");
 	}

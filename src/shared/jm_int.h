@@ -1,3 +1,8 @@
+/*
+ BSD 3-Clause License
+ Copyright (c) 2025, The Regents of the University of California
+ See Repository LICENSE file
+ */
 // 
 // jm_int.h
 // Shared by jm_master and jm_sched so messages are in sync

@@ -1,5 +1,9 @@
-#!/usr/tce/packages/python/python-3.6.4/bin/python3
 # vim: tabstop=4 expandtab
+
+# BSD 3-Clause License
+# Copyright (c) 2025, The Regents of the University of California
+# See Repository LICENSE file
+
 # This file automates starting up Mpi_Jm in fault tolerant mode.
 #
 # Notes:

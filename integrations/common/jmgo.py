@@ -1,5 +1,10 @@
+# BSD 3-Clause License
+# Copyright (c) 2025, The Regents of the University of California
+# See Repository LICENSE file
+
 #
-# Startup code for the python frontend for mpi_jm
+# Startup code for scheduler, which is currently launched from
+# jm_master, which is launched via mpirun from the script startjm.py.
 #
 import sys
 import time
