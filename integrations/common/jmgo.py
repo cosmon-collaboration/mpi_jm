@@ -30,23 +30,20 @@ def schedInit():
     argc = len(argv)
     i = 1
     print("jmgo: processing args", flush=True)
-    foundyaml = "" # false in if
+    startyaml = "" # false in if
     while i < argc:
         if argv[i] == '-help' or argv[i] == '--help':
             usage()
             quit()
         elif argv[i].endswith(".yaml"):
-            if foundyaml:
-                raise ValueError(f"Found second startup yaml file {foundyaml}, then {argv[i]}")
-            foundyaml = argv[i]
+            if startyaml:
+                raise ValueError(f"Found second startup yaml file {startyaml}, then {argv[i]}")
+            startyaml = argv[i]
             # Must be the startup file
             # Option to pass startup yaml as command line option
-            i = i + 1
-            if i >= argc:
-                raise ValueError("missing path for -jy switch")
-            print("jmgo: Found startup yaml file {argv[i]}")
+            print("jmgo: Found startup yaml file {startyaml}", flush=True)
             # stick in environ to be picked up later
-            os.environ['JM_LAT_STARTUP_YAML'] = argv[i]
+            os.environ['JM_LAT_STARTUP_YAML'] = startyaml
             i = i + 1
         else:
             print(f"   skipping args {i}: {argv[i]}", flush=True)
