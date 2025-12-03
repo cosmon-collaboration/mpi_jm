@@ -129,7 +129,7 @@ def pickmpi():
         # pmux_base_async_modex picks up endpoint info only on first message instead of everywhere.  Again
         # sparse connectivity will win.
         ompirsh = ["-mca", "plm_rsh_agent", "ssh", "-show-progress"]
-        ompirsh += ["-mca", "fwd_mpirun_port", "true"] #  Incorrect usage
+        # ompirsh += ["-mca", "fwd_mpirun_port", "true"] #  Incorrect usage
         ompirsh += ["-mca", "opal_set_max_sys_limits", "1"] # should it be -mca or --mca
         mpirun = [exepath]
         bdir=os.path.dirname(exepath)
@@ -141,8 +141,8 @@ def pickmpi():
         mpirun_ns = [] # options to set up name server
         mpirun_hf = "-hostfile"
         mpirun_n = "-np"
-        # --no-daemonize, or it forks and the parent exits so we can keep
-        # a handle on it.
+        # We set --no-daemonize, or it forks and the parent exits. 
+        # This way we can keep a handle on it for later shutdown.
         # -r nameserveridfile produces the info to connect that we need for mpirun calls.
         # launchnameserver will set mpirun_ns
         #
@@ -458,7 +458,7 @@ def launchnameserver():
     global mpirun_ns
     print("Starting nameserver: ", nameserver, flush=True)
     logfile=open(nameserverlogfile, "w")
-    print(f"Nameserver Launch: ", cmd)
+    print(f"Nameserver Launch: ", nameserver)
     x = subprocess.Popen(nameserver, stdout=logfile, stderr=subprocess.STDOUT )
     logfile.close()
     # the nameserver should keep running until the end of the job
@@ -536,9 +536,9 @@ def main():
 
     # set up name server which enables connections between mpiruns
     if numlumps > 1:
-        nameserver=launchnameserver()
+        nameserverproc=launchnameserver()
     else:
-        nameserver=None
+        nameserverproc=None
 
     # start up the lumps.  The first one will include the scheduler
     runlist = launchmpiruns(hostlist, numlumps, lumpsize, blocksize, alloctime, jm_master_v, pyargs)
@@ -575,8 +575,8 @@ def main():
         i,pid,rc=r
         print(str(i)+": pid=", pid, ", rc=", rc, flush=True)
     # shut down the name server before we go
-    if not (nameserver is None):
-        nameserver.terminate()
+    if not (nameserverproc is None):
+        nameserverproc.terminate()
 
 if __name__ == "__main__":
     # execute only if run as a script

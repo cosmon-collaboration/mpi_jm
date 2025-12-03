@@ -11,6 +11,8 @@
 // control to pick the nodes.   It looks like it can also pick slots.   When jobs are
 // sent from the scheduler they come with a complete assignment of node/slots per process
 // for hybrid MPI/OMP jobs.
+
+// TODO:  Get Lump name for reporting
 //
 // TODO:
 //    Use topology files from Gustav for block node selection
@@ -55,7 +57,7 @@ extern char *jm_mstr(const char *s);
 extern char *jm_block_procname(int id);
 extern void jm_unpackslotenv();
 
-int jm_verbose = 1;
+int jm_verbose = 2;
 char *jm_sched_path = nullptr;
 char *jm_spawnwrap_path = nullptr;
 
@@ -108,8 +110,30 @@ static void err(const char *msg, ...) {
 	MPI_Abort(MPI_COMM_WORLD, 17);
 }
 
-static void jm_log(const char *fmt, ...) {
-	if(1 > jm_verbose) return;
+typedef void (*msgfunc)(const char *, ...);
+
+static const char *msg_filename = "<unknown>";
+static int msg_linenum = 0;
+
+static void jm_log_msg(const char *fmt, ...) {
+	if(jm_verbose < 1) return;
+	char *buf = jm_logbuf;
+	va_list args;
+	va_start(args, fmt);
+	vsprintf(buf, fmt, args);
+	va_end(args);
+	printf("Master B%dR%d: %s:%d %s", jm_block_id, jm_block_rank, msg_filename, msg_linenum, buf);
+}
+
+static msgfunc jm_log_setlf(const char *filename, int linenum) {
+	msg_filename = filename;
+	msg_linenum = linenum;
+	return jm_log_msg;
+}
+
+
+static void jm_log2(const char *fmt, ...) {
+	if(jm_verbose < 2) return;
 	char *buf = jm_logbuf;
 	va_list args;
 	va_start(args, fmt);
@@ -118,15 +142,7 @@ static void jm_log(const char *fmt, ...) {
 	printf("Master B%dR%d: %s", jm_block_id, jm_block_rank, buf);
 }
 
-static void jm_log(int lvl, const char *fmt, ...) {
-	if(lvl > jm_verbose) return;
-	char *buf = jm_logbuf;
-	va_list args;
-	va_start(args, fmt);
-	vsprintf(buf, fmt, args);
-	va_end(args);
-	printf("Master B%dR%d: %s", jm_block_id, jm_block_rank, buf);
-}
+#define jm_log (jm_log_setlf(__FILE__, __LINE__))
 
 #define SPAWNWRAP
 #define SPAWNWRAPPGM jm_spawnwrap_path
@@ -395,7 +411,7 @@ public:
 		}
 		MPI_Barrier(jm_block_comm);
 		if(jm_block_rank == 0) {
-			jm_log(1, "Distributing node names from worker");
+			jm_log("Distributing node names from worker");
 		}
 		// distribute to rest of jm_master in block
 		MPI_Bcast(work_locbuf, locbufsize, MPI_CHAR, 0, jm_block_comm);
@@ -554,7 +570,7 @@ public:
 		int logexists = 1;
 
 		if(jm_block_rank == 0) {
-			jm_log(2, "check job %s(%d) for activity\n", jobname, jobid);
+			jm_log2("check job %s(%d) for activity\n", jobname, jobid);
 		}
 		if(jm_block_rank == 0) {
 			logexists = stat(logfile, &st) == 0;
@@ -584,7 +600,7 @@ public:
 		}
 		MPI_Allreduce(&bpcnt, &pcnt, 1, MPI_INT, MPI_SUM, jm_block_comm);
 		if(jm_block_rank == 0)
-			jm_log(2, "job %s(%d) has %d of %d processes active\n", jobname, jobid, pcnt, proccnt);
+			jm_log2("job %s(%d) has %d of %d processes active\n", jobname, jobid, pcnt, proccnt);
 		if(pcnt == proccnt)
 			return -1;  // all ranks still running
 		if(pcnt == 0)
@@ -680,7 +696,7 @@ void jm_split_blocks() {
 	jm_block_locbuf = new char [locbufsize];
 	MPI_Gather(jm_this_procname, JM_LOC_ENT_SIZE, MPI_CHAR, jm_block_locbuf, JM_LOC_ENT_SIZE, MPI_CHAR, 0, jm_block_comm);
 	if(jm_block_rank == 0) {
-		jm_log(2, "Gathered all hostnames from jm_master in block\n");
+		jm_log2("Gathered all hostnames from jm_master in block\n");
 	}
 	// make sure everyone has the table
 	MPI_Bcast(jm_block_locbuf, locbufsize, MPI_CHAR, 0, jm_block_comm);
@@ -706,16 +722,16 @@ void jm_readmachineparms() {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	if(rank == 0) {
 		// only rank 0 gets machine parms from jm_sched
-		jm_log(2, "Master B0R0: about to receive %d integers(parms of machine info) from jm_sched\n", JM_MACH_PARMS_SIZE); 
+		jm_log2("Master B0R0: about to receive %d integers(parms of machine info) from jm_sched\n", JM_MACH_PARMS_SIZE); 
 		MPI_Recv(mparms, JM_MACH_PARMS_SIZE, MPI_INT, 
 			MPI_ANY_SOURCE, MPI_ANY_TAG, jm_sched_intercomm, MPI_STATUS_IGNORE);
-		jm_log(2, "Master B0R0: received data\n");
+		jm_log2("Master B0R0: received data\n");
 		jm_block_size = mparms[1];    // number of nodes in block
 		jm_node_maxwidth = mparms[2]; // threads on a node:  number of slots
 		jm_slotenvbufsize = mparms[3]; // includes nul at end
 		SETLINE();
 		jm_slotenvbuf = new char[jm_slotenvbufsize];
-		jm_log(2, "Master B0R0: about to receive %d chars for slotenvbuf\n", jm_slotenvbufsize);
+		jm_log2("Master B0R0: about to receive %d chars for slotenvbuf\n", jm_slotenvbufsize);
 		MPI_Recv(jm_slotenvbuf, jm_slotenvbufsize, MPI_CHAR, 
 			MPI_ANY_SOURCE, MPI_ANY_TAG, jm_sched_intercomm, MPI_STATUS_IGNORE);
 		jm_log("Received machine parameters from scheduler\n");
@@ -734,8 +750,8 @@ void jm_readmachineparms() {
 	MPI_Bcast(jm_slotenvbuf, jm_slotenvbufsize, MPI_CHAR, 0, MPI_COMM_WORLD);
 
 	if(rank == 0) {
-		jm_log(2, "block size = %d, maxthread = %d\n", jm_block_size,jm_node_maxwidth);
-		jm_log(2, "slotenvbuf=%s\n", jm_slotenvbuf);
+		jm_log2("block size = %d, maxthread = %d\n", jm_block_size,jm_node_maxwidth);
+		jm_log2("slotenvbuf=%s\n", jm_slotenvbuf);
 	}
 	jm_unpackslotenv(); // convert to slot based table.
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -858,7 +874,7 @@ void jm_launch_scheduler(int argc, char *argv[]) {
 	for(int i = 0; argv[i]; i++) {
 		printf("   %d: %s\n", i, argv[i]);
 	}
-	jm_log(2, "About to Read back machine parameters\n");
+	jm_log2("About to Read back machine parameters\n");
 	// now that spawn has happened, we have to fill in jm_sched_intercomm on
 	// each jm_block_rank==0 process
 }
@@ -886,12 +902,19 @@ static void jm_connect_scheduler(const char *hostname, bool done, MPI_Comm sched
 		// only need this in rank 0.
 		MPI_Info lookinfo;
 		MPI_Info_create(&lookinfo);
+#if 0
+		// Todo:  pass lumps flag to master. 
 		MPI_Info_set(lookinfo, "ompi_lookup_order", "global"); // between mpiruns
+#else
+		printf("Disabled ompi_lookup_order global\n");
+#endif
 		link_port[0] = 0;
+		printf("master: Looking up link port via collectname=%s in lump %s\n", collectname, lumpname);
 		rc = MPI_Lookup_name(collectname, lookinfo, link_port);
 		if(rc != MPI_SUCCESS) {
 			err("Master: Failed to look up port with name %s for initial lump connection, rc=%d", collectname, (int)rc);
 		}
+		printf("Got link_port=%s\n", link_port);
 		MPI_Info_free(&lookinfo);
 		if(!link_port[0]) {
 			err("Master: Failed to look up port with name %s for initial lump connection", collectname);
@@ -903,7 +926,7 @@ static void jm_connect_scheduler(const char *hostname, bool done, MPI_Comm sched
 		if(rc != MPI_SUCCESS) {
 			err("Master: lump connection to %s failed", link_port);
 		}
-		jm_log("Made connection, sending lumpname to scheduler\n");
+		jm_log("Made connection, sending lumpname %s to scheduler\n", lumpname);
 		MPI_Send(lumpname, LUMPNAMESIZE, MPI_CHAR, 0, done? 0 : 1, tmpcomm);
 		if(done) {
 			jm_log("Sent message to end collection of lumps of nodes\n");
@@ -913,38 +936,79 @@ static void jm_connect_scheduler(const char *hostname, bool done, MPI_Comm sched
 		}
 	} else {
 		// this lump is the one that started jm_sched
+		jm_log("Reusing parentcomm for block to scheduler connection");
 		tmpcomm = schedcomm;
 	}
+	char **block_link_port = nullptr;
 	if(rank == 0) {
 		lumpsize = jm_world_size;
 		jm_log("lumpsize to scheduler\n");
 		MPI_Send(&lumpsize, 1, MPI_INT, 0, 1, tmpcomm);
 		jm_log("Reading nodesperblock from scheduler\n");
 		MPI_Recv(&jm_block_size, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, tmpcomm, MPI_STATUS_IGNORE);
+		jm_log("Received block size = %d\n", jm_block_size);
+		jm_block_count = jm_world_size / jm_block_size; // only in rank 0 for now
+		block_link_port = new char*[jm_block_count];
+		// get them now instead of later.
+		for(int bid = 0; bid < jm_block_count; bid++) {
+			block_link_port[bid] = new char[MPI_MAX_PORT_NAME];
+			MPI_Recv(block_link_port[bid], MPI_MAX_PORT_NAME, MPI_CHAR,
+				MPI_ANY_SOURCE, MPI_ANY_TAG, tmpcomm, MPI_STATUS_IGNORE);
+			jm_log("Received link_port=%s for block %d\n", block_link_port[bid], bid);
+		}
 	}
 	// Have to get one bit of machine info early so we can figure out blocks.
+	jm_log("Broadcasting block_size");
 	MPI_Bcast(&jm_block_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	jm_block_id = jm_world_rank / jm_block_size;
 	jm_block_rank = jm_world_rank % jm_block_size;
 	jm_block_count = jm_world_size / jm_block_size;
+	jm_log("block_id=%d, block_rank=%d, block_count=%d", jm_block_id, jm_block_rank, jm_block_count);
+	if(rank != 0) {
+		// Now allocate space for block_link_port in all other nodes in block
+		// Overkill, but ok.
+		block_link_port = new char*[jm_block_count];
+		for(int bid = 0; bid < jm_block_count; bid++) {
+			block_link_port[bid] = new char[MPI_MAX_PORT_NAME];
+		}
+	}
+	// Send them out.
+	jm_log("Broadcast out link_port values to all jm_master ranks in block");
+	for(int bid = 0; bid < jm_block_count; bid++) {
+		MPI_Bcast(block_link_port[bid],  MPI_MAX_PORT_NAME, MPI_CHAR, 0, MPI_COMM_WORLD);
+	}
 
 	if(rank == 0) {
 		jm_log("Connecting blocks to scheduler\n");
 	}
+	usleep(1000);
 	// Now make private connections to first node of each block
 	for(int bid = 0; bid < jm_block_count; bid++) {
-		// get port info for the next block.
+		// get port info over tmpcomm.   In lump 0 this is the
+		// parentcomm connecting the scheduler to rank 0 of the lump
+#if 0
 		if(rank == 0) {
-			jm_log("Connecting block %d to scheduler\n", bid);
+			jm_log("Getting link port for  lump %s block %d from scheduler\n", lumpname, bid);
+#if 0
 			MPI_Recv(link_port, MPI_MAX_PORT_NAME, MPI_CHAR,
 				MPI_ANY_SOURCE, MPI_ANY_TAG, tmpcomm, MPI_STATUS_IGNORE);
+#else
+			MPI_Recv(link_port, MPI_MAX_PORT_NAME, MPI_CHAR,
+				0, MPI_ANY_TAG, tmpcomm, MPI_STATUS_IGNORE);
+#endif
 			jm_log("Received private port info %s\n", link_port);
 		}
+		// above action must complete before MPI_Bcast below
+		// This makes sure the log messages get out from rank 0
+		MPI_Barrier(MPI_COMM_WORLD);
 		// tell all nodes in lump. Could just send to bid*jm_block_size
+		jm_log("Sending out link_port to all members of block");
 		MPI_Bcast(link_port, MPI_MAX_PORT_NAME, MPI_CHAR, 0, MPI_COMM_WORLD);
+#endif
 		if(rank == bid * jm_block_size) {
 			// this is the jm_master to take the message
-			rc = MPI_Comm_connect(link_port, MPI_INFO_NULL, 0, MPI_COMM_SELF, &jm_sched_intercomm);
+			jm_log("Performing connect to block %d", bid);
+			rc = MPI_Comm_connect(block_link_port[bid], MPI_INFO_NULL, 0, MPI_COMM_SELF, &jm_sched_intercomm);
 			if(rc != MPI_SUCCESS) {
 				err("Master: failed to connect to jm_sched on %s\n", link_port);
 			}
@@ -1024,7 +1088,7 @@ void jm_unpackslotenv() {
 		if(sep->slot < 0 || sep->slot >= jm_node_maxwidth)
 			malformedslotenv();
 		// save the environment variable in the table indexed by slot.
-		jm_log(2, "saving slot=%d env %s=%s\n", sep->slot, sep->name, sep->value);
+		jm_log2("saving slot=%d env %s=%s\n", sep->slot, sep->name, sep->value);
 		sep->next = jm_slotenvlist[sep->slot];
 		jm_slotenvlist[sep->slot] = sep;
 	}
@@ -1075,45 +1139,45 @@ void jm_runjob(int *cmd, char *jobbuf) {
 			delete[] jobname;
 			jobname = jm_mstr(cp);
 			if(jm_block_rank == 0)
-				jm_log(2, "Jobname %s\n", cp);
+				jm_log2("Jobname %s\n", cp);
 		} else if(!strncmp(cp, JM_BUF_PGM, JM_BUF_PGM_LEN)) {
 			cp += JM_BUF_PGM_LEN;
 			delete[] pgm;
 			pgm = jm_mstr(cp);
 			if(jm_block_rank == 0)
-				jm_log(2, "pgm %s\n", cp);
+				jm_log2("pgm %s\n", cp);
 		} else if(!strncmp(cp, JM_BUF_DIR, JM_BUF_DIR_LEN)) {
 			cp += JM_BUF_DIR_LEN;
 			delete[] dir;
 			dir = jm_mstr(cp);
 			if(jm_block_rank == 0)
-				jm_log(2, "dir %s\n", cp);
+				jm_log2("dir %s\n", cp);
 		} else if(!strncmp(cp, JM_BUF_STDOUT, JM_BUF_STDOUT_LEN)) {
 			cp += JM_BUF_STDOUT_LEN;
 			delete[] logfile;
 			logfile = jm_mstr(cp);
 			if(jm_block_rank == 0)
-				jm_log(2, "logfile %s\n", cp);
+				jm_log2("logfile %s\n", cp);
 		} else if(!strncmp(cp, JM_BUF_ARG, JM_BUF_ARG_LEN)) {
 			cp += JM_BUF_ARG_LEN;
 			args.push_back(jm_mstr(cp));
 			//if(jm_block_rank == 0)
-			//	jm_log(2, "Arg %s\n", cp);
+			//	jm_log2("Arg %s\n", cp);
 		} else if(!strncmp(cp, JM_BUF_ENV, JM_BUF_ENV_LEN)) {
 			cp += JM_BUF_ENV_LEN;
 			env.push_back(jm_mstr(cp));
 			//if(jm_block_rank == 0)
-			//	jm_log(2, "Env %s\n", cp);
+			//	jm_log2("Env %s\n", cp);
 		} else if(!strncmp(cp, JM_BUF_RANK, JM_BUF_RANK_LEN)) {
 			cp += JM_BUF_RANK_LEN;
 			rankdata = jm_mstr(cp);
-			jm_log(2, "Received rank data '%s'\n", rankdata);
+			jm_log2("Received rank data '%s'\n", rankdata);
 		} else if(!strncmp(cp, JM_BUF_NTHREAD, JM_BUF_NTHREAD_LEN)) {
 			cp += JM_BUF_NTHREAD_LEN;
 			nthreadsperrank = atoi(cp);
 		} else if(!strncmp(cp, JM_BUF_END, JM_BUF_END_LEN)) {
 			if(jm_block_rank == 0)
-				jm_log(2, "End\n");
+				jm_log2("End\n");
 			break;
 		} else {
 			err("Unknown job data entry %s\n", cp);
@@ -1374,10 +1438,10 @@ void jm_sched_listen() {
 	}
 	while(1) {
 		if(jm_block_rank == 0) {
-			jm_log(2, "At listen loop top\n");
+			jm_log2("At listen loop top\n");
 			MPI_Test(&cmdrequest, &cmdflag, &cmdstatus);
 			if(cmdflag) {
-				jm_log(2, "Received command %d:%d:%d\n", mcmd[0], mcmd[1], mcmd[2]);
+				jm_log2("Received command %d:%d:%d\n", mcmd[0], mcmd[1], mcmd[2]);
 				for(i = 0; i < 4; i++) cmd[i] = mcmd[i];
 			} else {
 				cmd[0] = JM_CMD_NAP;
@@ -1391,7 +1455,7 @@ void jm_sched_listen() {
 		case JM_CMD_NAP:
 			sleep(2);
 			if(jm_block_rank == 0)
-				jm_log(2, "Napping\n");
+				jm_log2("Napping\n");
 			break;
 		case JM_CMD_JOB:
 			argbuflen = cmd[1];
@@ -1404,7 +1468,7 @@ void jm_sched_listen() {
 			SETLINE();
 			jobbuf = new char[argbuflen+1];
 			if(jm_block_rank == 0) {
-				jm_log(2, "Received job command, looking for arguments\n");
+				jm_log2("Received job command, looking for arguments\n");
 				MPI_Irecv(jobbuf, argbuflen, MPI_CHAR, 0, JM_ARG_TAG, jm_sched_intercomm, &jobrequest);
 				MPI_Wait(&jobrequest, &jobstatus);
 			}
@@ -1443,7 +1507,7 @@ void jm_sched_listen() {
 			spjob = spjobnxt;
 			spjobnxt = spjob->next;
 			if(jm_block_rank == 0) {
-				jm_log(2,"Checking for job %s(%d) completion\n", spjob->jobname, spjob->jobid);
+				jm_log2("Checking for job %s(%d) completion\n", spjob->jobname, spjob->jobid);
 			}
 			int rc = spjob->is_active();
 			if(rc < 0) continue; // still running
@@ -1478,7 +1542,9 @@ void jm_check_usage(int argc, char **argv) {
 	printf("usage:  jm_master -py <module> <args...>\n");
 	printf("   module is the name of a module to load and call schedInit.  <args...> are extra arguments\n");
 	printf("   passed in sys.argc,sys.argv\n");
-	printf("usage:  jm_master [-connect] [-end]\n");
+	printf("usage:  jm_master [-v] [-vv] [-connect] [-end]\n");
+	printf("  -v       Generates first level messages\n");
+	printf("  -vv      Generates more verbose messages\n");
 	printf("  -connect indicates that this set of jm_master should connect to a running scheduler\n");
 	printf("  -end     indicates that the scheduler should stop collecting lumps of nodes and start running\n");
 	exit(0);

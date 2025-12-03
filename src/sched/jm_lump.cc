@@ -71,6 +71,7 @@ Lump::Lump(MPI_Comm tmpcomm) { // Used to track Lump created in initial launch o
 	}
 
 	// each block will get it's own private comm
+	printf("Scheduler: Making links to rank 0 of each block in first lump\n");
 	MakeBlockLinks(tmpcomm);
 
 	CreateMsg();
@@ -200,7 +201,7 @@ void JmAcceptLumps() {
 void Lump::MakeBlockLinks(MPI_Comm tmpcomm) {
 	char link_port[MPI_MAX_PORT_NAME];
 
-	printf("Server: Making links to block root nodes, block_count=%d\n", block_count);
+	printf("Server: Making links to block root nodes, block_count=%d, in lump %s\n", block_count, lumpname);
 	// now connect up blocks one at a time.
 	block_link_str = new char*[block_count];
 	block_link_comm = new MPI_Comm[block_count];
@@ -210,24 +211,30 @@ void Lump::MakeBlockLinks(MPI_Comm tmpcomm) {
 	printf("Server: sending nodesperblock\n");
 	MPI_Send(&nodesperblock, 1, MPI_INT, 0, 1, tmpcomm);
 
-	printf("Server: opening ports for each block\n");
 	for(int bid = 0; bid < block_count; bid++) {
+		printf("Server: opening ports for block %d in lump %s\n", bid, lumpname);
 		//MPI_Info portinfo;
 		//MPI_Info_create(&portinfo);
 		// int rc = MPI_Open_port(portinfo, link_port); // create port and get info to connect with in link_port
 		int rc = MPI_Open_port(MPI_INFO_NULL, link_port); // create port and get info to connect with in link_port
 		//MPI_Info_free(&portinfo);
-		printf("Server: Open port returned\n");
-		printf("Server: link_port=%s\n", link_port);
 		if(rc != MPI_SUCCESS)
 			printf("Server: MPI_Open_port failed!\n");
+		printf("Server: Open port returned link_port=%s\n", link_port);
 		block_link_str[bid] = jm_mstr(link_port);
+		MPI_Send(block_link_str[bid], MPI_MAX_PORT_NAME, MPI_CHAR, 0/*rank*/, 1/*tag*/, tmpcomm);
+		printf("Server: Sent to block %d rank 0\n", bid);
 	}
 
-	printf("Server: connect port for each block");
 	for(int bid = 0; bid < block_count; bid++){
 		strcpy(link_port, block_link_str[bid]);
-		MPI_Send(link_port, MPI_MAX_PORT_NAME, MPI_CHAR, 0, 1, tmpcomm);
+		printf("Server: send link_port %s for block %d\n", link_port, bid);
+		// send link port to rank 0 of the lump.   It will then broadcast in the lump
+		// so the desired block rank 0 can connect.
+#if 0
+		MPI_Send(link_port, MPI_MAX_PORT_NAME, MPI_CHAR, 0/*rank*/, 1/*tag*/, tmpcomm);
+#endif
+		printf("Server: beginning accept on link_port %s\n", link_port);
 		MPI_Comm_accept(link_port, MPI_INFO_NULL, 0, MPI_COMM_SELF, &block_link_comm[bid]);
 		bic_rank[bid] = 0; // other end uses MPI_COMM_SELF for now
 		printf("Accepted %s:B%d\n", lumpname, bid);
