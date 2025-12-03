@@ -114,9 +114,9 @@ def est_runtime(j, diag, epsabs):
         nnodes = 1
         s = 2*60
     elif "3Body_3rd" in diag:
-        nnodes = 1
-        s = 20*60
-        print("est_runtime: 3Body_3rd", flush=True);
+        nnodes = 2
+        # 35 minutes on one node.
+        s = (5 + 30 // nnodes) * 60
     else:
         nnodes = 4
         s = 1.0 * est_runtime_sub(diag, epsabs)
@@ -124,6 +124,12 @@ def est_runtime(j, diag, epsabs):
             nnodes = 4
             # 20% is fixed overhead
             s = 0.6 * s 
+    # if running in a small block, reduce node count to match
+    # and scale up runtime.
+    blocksize=mpi_jm.getblocksize()
+    if nnodes > blocksize:
+        s *= nnodes / blocksize
+        nnodes = blocksize
     # could implement system scaling here
     # need to get GPUs/node for mult
     if gpus_per_node > 0:
@@ -349,6 +355,7 @@ def add_job(jdict):
     j.wrapcmd = "jm_eos.wrapcmd"    # call at end of job
     j.depcmd = "jm_eos.depcmd"      # call to see if more jobs have dependencies satisfied.
     j.addenv("PGPU_NOISY", "1")
+    j.addenv("JM_EOS_SET_AFFINITY", "1")
     # j.addenv("EOS_NNEFFPWBASEPATH", "/home/chiral/NN_matrix_elements_SRG")
     # j.addenv("EOS_NNPWBASEPATH","/home/chiral/NN_matrix_elements_SRG")
     # j.addenv("EOS_PARAMSDIR", "/home/ken/EOS_DEV/eos/params")
