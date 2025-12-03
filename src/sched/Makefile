@@ -19,7 +19,7 @@ CXXFLAGS=$(INCLUDES) -Wall -g -O0 -fno-omit-frame-pointer
 CC=$(MPICC)
 CXX=$(MPICXX)
 
-LDFLAGS:=-L${MPI_LIB_DIR}
+LDFLAGS:=-L$(MPI_LIB_DIR) $(CFGLINKFLAGS)
 
 # SRCS=jm_py.cc jm_sched.cc jm_res.cc
 SRCS=jm_py.cc jm_sched.cc jm_res.cc jm_lump.cc jm_log.cc jm_mkdirp.c

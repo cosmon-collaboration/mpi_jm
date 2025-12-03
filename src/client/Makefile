@@ -28,7 +28,7 @@ JMOMPLIBS=libjm_workeromp.a
 INCLUDES=-I../shared
 CXXFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer $(CPUID)
 CFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer $(CPUID)
-LDFLAGS:=-L$(MPI_LIB_DIR)
+LDFLAGS:=-L$(MPI_LIB_DIR) ${CFGLINKFLAGS}
 
 all: $(BINDIR)  $(LIBDIR)  $(INCDIR)/jm.h
 	make -e $(LIBDIR)/$(JMLIB) $(LIBDIR)/$(JMOMPLIB) $(LIBDIR)/$(JMLIBS) $(LIBDIR)/$(JMOMPLIBS)

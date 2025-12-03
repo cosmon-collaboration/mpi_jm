@@ -11,7 +11,7 @@ DEFLIST=
 INCLUDES=-I../shared
 CXXFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
 CFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
-LDFLAGS:=-L$(MPI_LIB_DIR)
+LDFLAGS:=-L$(MPI_LIB_DIR) $(CFGLINKFLAGS)
 
 all: $(BINDIR)
 	make -e $(BINDIR)/jm_master
@@ -21,7 +21,7 @@ $(BINDIR):
 	chmod ug+rw $(BINDIR)
 
 $(BINDIR)/jm_master: jm_master.cc ../shared/jm.h ../shared/jm_int.h
-	$(MPICXX) -g -O0 -rdynamic  $(LDFLAGS) -o $(BINDIR)/jm_master $(CXXFLAGS) jm_master.cc
+	$(MPICXX) -g -O0 -rdynamic  $(LDFLAGS) -o $(BINDIR)/jm_master $(CXXFLAGS) jm_master.cc 
 
 clean:
 	/bin/rm -f .depend

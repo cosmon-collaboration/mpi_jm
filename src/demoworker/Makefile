@@ -24,7 +24,7 @@ CC=mpicc -std=c99
 INCLUDES=-I../shared
 CXXFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
 CFLAGS=$(INCLUDES) $(DEFLIST) -Wall -g -O0 -fno-omit-frame-pointer
-LDFLAGS:=-L$(MPI_LIB_DIR)
+LDFLAGS:=-L$(MPI_LIB_DIR) $(CFGLINKFLAGS)
 
 all: $(BINDIR)
 	make $(BINDIR)/demoworker
@@ -49,7 +49,7 @@ else
 	# This will allow us to drop new libjm_worker.so files into the chroma tree.
 	# https://stackoverflow.com/questions/6323603/ld-using-rpath-origin-inside-a-shared-library-recursive
 	# $(CXX) -o demoworker $(CXXFLAGS) demoworker.cc -Wl,-rpath,"\$$ORIGIN/../lib,-rpath-link,." -l:libjm_worker.so
-	$(CXX) -o demoworker $(CXXFLAGS) $(LDFLAGS) -rdynamic demoworker.cc -Wl,-rpath,"\$$ORIGIN/../lib,-rpath-link,." -L. -L../../lib -ljm_worker
+	$(CXX) -o demoworker $(CXXFLAGS) $(LDFLAGS) -rdynamic demoworker.cc -Wl,-rpath,"\$$ORIGIN/../lib,-rpath-link,." -L. -L../../lib -ljm_worker 
 endif
 	install -m 755 demoworker $(BINDIR)
 
