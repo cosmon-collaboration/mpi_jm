@@ -1,3 +1,9 @@
+/*
+ BSD 3-Clause License
+ Copyright (c) 2025, The Regents of the University of California
+ See Repository LICENSE file
+ */
+
 //
 // jm_worker.c defines some utility functions needed
 // by MPI jobs that are to be run under the job manager.
