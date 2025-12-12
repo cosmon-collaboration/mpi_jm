@@ -46,3 +46,13 @@ The second test verifies that a segmentation violation (or other signal) in the 
 
 The master waits ten seconds and writes a success message.  This gives the worker time to start and force a segmentation fault.  
 
+# Results
+
+## Mvapich-plus-4.1
+
+Abort is handled correctly.    The error does not propagate.
+
+A segmentation fault incorrectly propagates to the master and takes the job down.
+
+We can work around this until a fix is supplied by having the client library insert a segv and bus error handler that does an Abort.
+
