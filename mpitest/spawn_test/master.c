@@ -69,6 +69,12 @@ int main(int argc, char **argv) {
 	char *usedpm = getenv("MV2_SUPPORT_DPM");
 	printf("MV2_SUPPORT_DPM=%s\n", usedpm ? usedpm : "<NOTSET>");
 	fflush(stdout);
+#if 0
+	// TODO:  I found this in the openmpi MPI_Comm_spawn docs.
+	//     https://docs.open-mpi.org/en/main/man-openmpi/man3/MPI_Comm_spawn.3.html
+	// I tried with mvapich-plus, but did not help with segv test
+	MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+#endif
 
 #define USE_SPAWN_MULTIPLE
 #ifdef USE_SPAWN_MULTIPLE
@@ -102,6 +108,13 @@ int main(int argc, char **argv) {
 			maxproc[i] = 1;
 		}
 		rc = MPI_Comm_spawn_multiple(proccnt, cmds, args, maxproc, infoa, 0, MPI_COMM_SELF, &intercomm, errcodes);
+#if 0
+		//
+		// tried with mvapich-plus-4.1, had no impact.
+		// I think the short term answer is to install error handlers in worker that do MPI_Abort
+		// for mpi_jm, we could do this in the client library
+		if(rc == 0) MPI_Comm_set_errhandler(intercomm, MPI_ERRORS_RETURN);
+#endif
 		for(int i = 0; i < proccnt; i++) {
 			free(args[i][0]);
 			free(args[i][1]);
@@ -118,6 +131,10 @@ int main(int argc, char **argv) {
 	}
 #else
 	rc = MPI_Comm_spawn(workpath, sargv, 2, MPI_INFO_NULL, 0, MPI_COMM_WORLD, &intercomm, errcodes);
+#endif
+#if 0
+	// Restore error handling for MPI_COMM_WORLD
+	MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_ABORT);
 #endif
 	printf("spawn rc=%d\n", rc);
 
